@@ -11,3 +11,6 @@ poetry.lock
 # Pycache
 __pycache__/
 *.pyc
+
+#Log-Folder
+logs/
