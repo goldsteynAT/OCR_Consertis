@@ -55,7 +55,15 @@ def batch_ocr_pdfs(input_dir: str, output_dir: str, use_gpu: bool = False, langu
     from progress_display import display_progress
 
     if status_file is None:
-        status_file = os.path.join(output_dir, "ocr_status.json")
+    # Determine project root (assumes __file__ is in src/ocr_consertis, so go up three levels)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logs_dir = os.path.join(project_root, "logs")
+        os.makedirs(logs_dir, exist_ok=True)  # Ensure the logs directory exists
+        status_file = os.path.join(logs_dir, "ocr_status.json")
+
+
+
+
     
     # Load previously processed PDFs (normalize paths)
     processed = load_status(status_file)

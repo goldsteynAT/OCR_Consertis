@@ -11,7 +11,7 @@ def load_status(status_file: str) -> list:
     Returns:
         list: List of normalized processed PDF file paths.
     """
-    if os.path.exists(status_file):
+    if status_file and os.path.exists(status_file):
         try:
             with open(status_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -31,7 +31,8 @@ def save_status(status_file: str, processed: list) -> None:
         processed (list): List of normalized processed PDF file paths.
     """
     try:
-        with open(status_file, 'w', encoding='utf-8') as f:
-            json.dump(processed, f, indent=4)
+        if status_file:
+            with open(status_file, 'w', encoding='utf-8') as f:
+                json.dump(processed, f, indent=4)
     except Exception as e:
         print(f"Error saving status file: {e}")
