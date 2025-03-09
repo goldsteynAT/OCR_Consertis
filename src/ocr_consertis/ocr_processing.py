@@ -35,7 +35,7 @@ def apply_ocr_to_pdf(input_pdf: str, output_pdf: str, use_gpu: bool = False) -> 
 
 def batch_ocr_pdfs(input_dir: str, output_dir: str, use_gpu: bool = False) -> None:
     """
-    Processes all PDFs in the input_dir, applies OCR, and saves them in the output_dir.
+    Processes all PDFs in the input_dir in parallel, applies OCR, and saves them in the output_dir.
     The directory structure is preserved.
     Displays progress with an overall progress bar and a status table.
     
@@ -44,30 +44,38 @@ def batch_ocr_pdfs(input_dir: str, output_dir: str, use_gpu: bool = False) -> No
         output_dir (str): Directory to save OCR-processed PDFs.
         use_gpu (bool): Whether to use GPU acceleration if available.
     """
-    # Gather all PDF files from input_dir
-    pdf_files = []
+    import concurrent.futures
+    from progress_display import display_progress
+
+    # Gather all PDF files from input_dir and prepare tasks
+    tasks = []
     for root, _, files in os.walk(input_dir):
         for file in files:
             if file.lower().endswith(".pdf"):
-                pdf_files.append(os.path.join(root, file))
-    total = len(pdf_files)
+                input_pdf = os.path.join(root, file)
+                relative_dir = os.path.relpath(os.path.dirname(input_pdf), input_dir)
+                target_dir = os.path.join(output_dir, relative_dir)
+                os.makedirs(target_dir, exist_ok=True)
+                output_pdf = os.path.join(target_dir, file)
+                tasks.append((input_pdf, output_pdf))
+    total = len(tasks)
     completed = []
     
-    # Import the progress display function
-    from progress_display import display_progress
-
-    for idx, input_pdf in enumerate(pdf_files, start=1):
-        # Determine output file path preserving directory structure
-        relative_dir = os.path.relpath(os.path.dirname(input_pdf), input_dir)
-        target_dir = os.path.join(output_dir, relative_dir)
-        os.makedirs(target_dir, exist_ok=True)
-        output_pdf = os.path.join(target_dir, os.path.basename(input_pdf))
-        
-        # Determine progress state
-        in_progress = input_pdf
-        next_items = pdf_files[idx:]  # Remaining files
-        display_progress(completed, in_progress, next_items, idx - 1, total)
-        
-        # Process current PDF
-        apply_ocr_to_pdf(input_pdf, output_pdf, use_gpu=use_gpu)
-        completed.append(input_pdf)
+    # Process tasks in parallel using ProcessPoolExecutor
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        future_to_task = {
+            executor.submit(apply_ocr_to_pdf, input_pdf, output_pdf, use_gpu): (input_pdf, output_pdf)
+            for input_pdf, output_pdf in tasks
+        }
+        for future in concurrent.futures.as_completed(future_to_task):
+            task = future_to_task[future]
+            try:
+                future.result()
+            except Exception as exc:
+                print(f"❌ Error processing {task[0]}: {exc}")
+            completed.append(task[0])
+            # For progress display: current task is the last one processed
+            in_progress = task[0]
+            # Next items: tasks not yet completed
+            next_items = [t[0] for t in tasks if t[0] not in completed]
+            display_progress(completed, in_progress, next_items, len(completed), total)
