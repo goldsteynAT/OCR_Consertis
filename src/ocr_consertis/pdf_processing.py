@@ -17,7 +17,12 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str) -> List[str]:
     base_name = pathlib.Path(pdf_path).stem
     for page_number in range(doc.page_count):
         page = doc[page_number]
-        pix = page.get_pixmap()
+        # Set higher DPI for better image quality
+        zoom_x = 2.5  # Adjust scaling factor for horizontal resolution
+        zoom_y = 2.5  # Adjust scaling factor for vertical resolution
+        matrix = fitz.Matrix(zoom_x, zoom_y)
+        pix = page.get_pixmap(matrix=matrix)
+
         output_file = os.path.join(output_dir, f"{base_name}_page_{page_number + 1}.png")
         try:
             pix.save(output_file)
@@ -59,7 +64,7 @@ def batch_convert_pdfs(input_path: str, output_dir: str) -> None:
         print(f"[{idx}/{total}] Processing: {pdf_file}")
         try:
             images = convert_pdf_to_images(pdf_file, output_dir)
-            print(f"  -> {len(images)} page(s) converted.")
+            print(f"  -> {len(images)} page(s) converted to PNG.")
         except Exception as e:
             print(f"  -> Error processing {pdf_file}: {e}")
 
