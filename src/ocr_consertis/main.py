@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     os.makedirs(output_dir, exist_ok=True)
     
-    # Apply OCR directly on PDFs using ocrmypdf
+    # Apply OCR directly on PDFs using ocrmypdf with progress display
     batch_ocr_pdfs(input_path, output_dir, use_gpu=False)
 
     print("✅ OCR-Processing completed! Searchable PDFs saved.")
