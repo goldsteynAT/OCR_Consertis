@@ -1,43 +1,57 @@
 import os
-import pytesseract
-from PIL import Image
+import ocrmypdf
 
-def perform_ocr_on_image(image_path: str) -> dict:
+def apply_ocr_to_pdf(input_pdf: str, output_pdf: str, use_gpu: bool = False) -> None:
     """
-    Performs OCR on a single image using pytesseract.
+    Applies OCR to a PDF file using ocrmypdf and generates a searchable PDF.
     
-    Returns:
-        A dictionary containing the extracted text and OCR metadata.
+    Args:
+        input_pdf (str): Path to the input PDF file.
+        output_pdf (str): Path where the OCR-processed PDF should be saved.
+        use_gpu (bool): Whether to use GPU acceleration if available.
     """
     try:
-        image = Image.open(image_path)
+        if use_gpu:
+            # When using GPU, force OCR on all pages
+            ocrmypdf.ocr(
+                input_pdf,
+                output_pdf,
+                language="deu+eng",
+                force_ocr=True,
+                deskew=True
+            )
+        else:
+            # When not using GPU, skip OCR if a text layer already exists
+            ocrmypdf.ocr(
+                input_pdf,
+                output_pdf,
+                language="deu+eng",
+                skip_text=True,
+                deskew=True
+            )
+        print(f"✅ OCR applied: {input_pdf} -> {output_pdf}")
     except Exception as e:
-        raise RuntimeError(f"Error opening image {image_path}: {e}")
-    
-    text = pytesseract.image_to_string(image)
-    # Optionally, get detailed OCR data
-    ocr_data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-    
-    return {"text": text, "data": ocr_data}
+        print(f"❌ Error processing {input_pdf}: {e}")
 
-def batch_process_ocr(input_dir: str, output_dir: str) -> None:
+def batch_ocr_pdfs(input_dir: str, output_dir: str, use_gpu: bool = False) -> None:
     """
-    Recursively processes all PNG images in the input_dir, performs OCR on each image,
-    and saves the extracted text as a .txt file in the corresponding output directory.
+    Processes all PDFs in the input_dir, applies OCR, and saves them in the output_dir.
     The directory structure is preserved.
+    
+    Args:
+        input_dir (str): Directory containing PDFs to process.
+        output_dir (str): Directory to save OCR-processed PDFs.
+        use_gpu (bool): Whether to use GPU acceleration if available.
     """
     for root, _, files in os.walk(input_dir):
         for file in files:
-            if file.lower().endswith(".png"):
-                image_path = os.path.join(root, file)
-                ocr_result = perform_ocr_on_image(image_path)
+            if file.lower().endswith(".pdf"):
+                input_pdf = os.path.join(root, file)
                 
-                # Preserve directory structure for output
+                # Preserve directory structure in output
                 relative_path = os.path.relpath(root, input_dir)
                 target_dir = os.path.join(output_dir, relative_path)
                 os.makedirs(target_dir, exist_ok=True)
                 
-                output_file = os.path.join(target_dir, f"{os.path.splitext(file)[0]}.txt")
-                with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(ocr_result["text"])
-                print(f"OCR processed: {image_path} -> {output_file}")
+                output_pdf = os.path.join(target_dir, file)
+                apply_ocr_to_pdf(input_pdf, output_pdf, use_gpu=use_gpu)

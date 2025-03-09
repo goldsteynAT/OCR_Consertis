@@ -1,19 +1,13 @@
 import os
-from pdf_processing import batch_convert_pdfs
-from ocr_processing import batch_process_ocr  # OCR-Funktion importieren
+from ocr_processing import batch_ocr_pdfs
 
 if __name__ == "__main__":
-    # Beispielpfade
-    input_path = r"C:\Users\danie\Desktop\neuocr\Test_ohne_OCR"   # Ordner mit PDFs
-    output_dir = r"C:\Users\danie\Desktop\neuocr\Test_mit_OCR"    # Ordner für PNGs & OCR-Texte
+    input_path = r"C:\Users\danie\Desktop\neuocr\Test_ohne_OCR"   # Directory containing original PDFs
+    output_dir = r"C:\Users\danie\Desktop\neuocr\Test_mit_OCR"       # Directory for OCR-processed (searchable) PDFs
 
-    # Sicherstellen, dass das Ausgabe-Verzeichnis existiert
     os.makedirs(output_dir, exist_ok=True)
     
-    # 1️⃣ PDF in PNG konvertieren
-    batch_convert_pdfs(input_path, output_dir)
+    # Apply OCR directly on PDFs using ocrmypdf
+    batch_ocr_pdfs(input_path, output_dir, use_gpu=False)
 
-    # 2️⃣ OCR auf die generierten PNGs anwenden
-    batch_process_ocr(output_dir, output_dir)
-
-    print("✅ Verarbeitung abgeschlossen! PNGs & OCR-Textdateien gespeichert.")
+    print("✅ OCR-Processing completed! Searchable PDFs saved.")
